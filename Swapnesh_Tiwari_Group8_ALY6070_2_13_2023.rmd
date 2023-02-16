@@ -1,0 +1,256 @@
+---
+title: ''
+output: html_document
+---
+
+```{r}
+library(sqldf)
+library(ggplot2)
+library(dplyr)
+library(hrbrthemes)
+library(readxl)
+library(tidyverse)
+library(kableExtra)
+```
+
+```{r}
+# Reading CSV file
+Diabetes <- read_excel("H:/A M.S in Informatics - Northeastern/Analytics/Communications and Visualizations/Assingment 3/Data-2_Swapnesh_Tiwari_Group8_ALY6070_2_06_2023.xlsx")
+Diabetes_2 <- read_excel("H:/A M.S in Informatics - Northeastern/Analytics/Communications and Visualizations/Assingment 3/Data-1_Swapnesh_Tiwari_Group8_ALY6070_2_06_2023.xlsx")
+DiabetesCovid <- read_excel("H:/A M.S in Informatics - Northeastern/Analytics/Communications and Visualizations/Assingment 3/archive (1)/Data-3_Swapnesh_Tiwari_Group8_ALY6070_2_06_2023.xlsx")
+
+DiabetesCovid2 = drop_na((DiabetesCovid))
+```
+
+
+```{r}
+# Dashboard Creation Starts from here
+
+library(shiny)
+library(shinydashboard)
+library(gridExtra)
+library(scales)
+library(googleway)
+library(leaflet)
+library(ggcorrplot)
+library(shinydashboardPlus)
+```
+
+
+```{r}
+#Exploratory Analysis
+
+
+Sum1= summary(Diabetes)
+Sum2 = summary(Diabetes_2)
+Sum1
+Sum2
+
+Yearly = sqldf("select year,Deaths from DiabetesComb group by year ")
+
+
+
+```
+
+
+
+```{r}
+
+
+UI <- 
+  
+  dashboardPage(skin = "midnight",
+  
+  dashboardHeader(title = "Good Morning Dr. Hemant", titleWidth = 290 , 
+                   dropdownMenu(type = "messages", badgeStatus = "success",
+    messageItem("Support Team",
+      "This is the content of a message.",
+      time = "5 mins"
+    ),
+    messageItem("Support Team",
+      "This is the content of another message.",
+      time = "2 hours"
+    ),
+    messageItem("New User",
+      "Can I get some help?",
+      time = "Today"
+    )),
+     dropdownMenu(type = "notifications", badgeStatus = "warning",
+    notificationItem(icon = icon("users"), status = "info",
+      "140 New Deaths Today"
+    ),
+    notificationItem(icon = icon("warning"), status = "danger",
+      "Yearly Deaths Increased"
+    ),
+    notificationItem(icon = icon("shopping-cart", lib = "glyphicon"),
+      status = "success", "New Diabetes Cases Added"
+    ),
+    notificationItem(icon = icon("user", lib = "glyphicon"),
+      status = "danger", "You changed your username"
+    )
+    
+  ) ,
+  
+  
+  dropdownMenu(type = "tasks", badgeStatus = "danger",
+    taskItem(value = 70, color = "aqua",
+      "Monthly Patient Goal"
+    ),
+    taskItem(value = 95, color = "green",
+      "High Patient Influx Yesterday"
+    ),
+    taskItem(value = 90, color = "yellow",
+      "Increased Inpatient Crowd"
+    ),
+    taskItem(value = 55, color = "red",
+      "Medicine Inventory"
+    )
+  )
+  
+  ),
+  
+  
+  
+  dashboardSidebar( width = 250,
+    
+    menuItem("Exploratory Information",  icon = icon("zoom-in", lib = "glyphicon"), 
+             tabName = "graphs"),
+    
+     br(),
+    menuItem("Geospatial Data",  icon = icon("globe", lib = "glyphicon"), 
+             tabName = "GeoSpatial"),
+    br(),
+    menuItem("Operations",  icon = icon("dashboard", lib = "glyphicon"), 
+             tabName = "Operations"),
+       br(),
+    menuItem("Diabetes Stats According to Year",  icon = icon("calendar", lib = "glyphicon"), 
+             tabName = "Diabetes_Year"))
+  ,
+  
+  dashboardBody(
+    
+    
+      fluidRow(
+        
+          
+    box(
+      title = "Mean Value of Diabetes Patients Across United States", width = 5, status = "danger",
+      "111.397",  background = "olive", solidHeader = TRUE
+    )),
+    
+     fluidRow(
+    box(
+      title = "Mean Value of Deaths due to Diabetes Across United States", width = 5, status = "danger",
+      "593.836", background = "aqua", solidHeader = TRUE
+    )),
+    
+   tabItems(
+      tabItem("graphs",
+              
+              h3("Analysis of dataset based on  
+                 Diabetes Cases According to Race and Deaths due to Diabetes  "),
+               p("The graph above shows the number of cases of diabetes in United States by race. The majority of these cases are seen in Caucasian people, accounting for 70% of all diagnosed diabetics. This data helps us understand that there are specific health needs for individuals with different racial backgrounds." ),
+            
+                  
+              box(plotOutput("plot2"),width=3),
+              box(plotOutput("plot1"),width=8)
+              
+      ),
+      
+      tabItem("GeoSpatial",
+        
+              h3("Map"),
+              p("The below map shows number of deaths in different states in United States."),
+              leafletOutput("mymap")
+      ),
+      
+       tabItem("Operations",
+              
+              h3("Analysis of Hospital Operations"),
+               p("Below you can see a 2D and a 3D diagram, 2D diagram on the left shows the age and number of patients in emergency room, which shows most of the patients in the emergency room are between ages 50-60 years old, whereas on the other hand 3D diagram shows thre variables number of patients in inpatient department, the age of patient when assesed in inpatient department and gender seen in inpatient department, this 3D diagram on the right shows most of the patients were female between 20-30 years of age." ),
+            
+                  
+              box(plotOutput("plot3"),width=6),
+              box(plotOutput("plot4"),width=6),
+             ),
+      
+       tabItem("Diabetes_Year",
+              
+              h3("Time Series"),
+               p("The below graph shows the diabetes cases according to year, we can see there is a spike in amount of patients in 2020 and compairing it to our previous graph"),
+            
+                  
+              box(plotOutput("plot5"),width=6),
+           )
+      
+      
+    )
+    ))
+  
+
+server <- function(input, output) {
+  output$plot1 <- renderPlot({
+    ggplot(data=Diabetes, aes(x=Diabetes$STATE, y=Diabetes$DEATHS/100)) +
+  geom_bar(stat="identity") + ggtitle("Number of Patients Died with Diabetes Type 2") +
+  xlab("State") + ylab("Deaths")})
+  
+  
+  
+   output$plot2 <- renderPlot({
+    ggplot(data=Diabetes_2, aes(x=Diabetes_2$race, y=Diabetes_2$number_diagnoses/1000)) +
+  geom_bar(stat="identity", color= "orange") + ggtitle("Number of Patients Diagnosed with Diabetes Type 2") +
+  xlab("Race") + ylab("Number of Patients Diagnosed")})
+     
+   
+   
+       output$plot3 <- renderPlot({
+    ggplot(data=Diabetes_2, aes(x=Diabetes_2$age, y=Diabetes_2$number_emergency)) +
+  geom_bar(stat="identity", color= "orange") + ggtitle("Number of Patients in Emergency Room VS Age of Patients") +
+  xlab("Age of Patients") + ylab("Number of Patients in Emergency Room")})
+         
+       
+       
+       output$plot4 <- renderPlot({       
+         ggplot(Diabetes_2, aes(x=Diabetes_2$age, y=Diabetes_2$number_inpatient)) + 
+  geom_point(aes(col=Diabetes_2$gender)) + 
+  geom_smooth(method="loess", se=F) + scale_color_brewer(palette="Dark2")+ ggtitle("Number of Patients seen in Inpatient department with Diabetes Type 2 according to Age and Gender of patient.") +
+  xlab("Age") + ylab("Number of Patients in Inpatient Department") })
+
+       
+       
+  output$mymap <- renderLeaflet({
+    leaflet() %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  setView(lng=-122.443334, lat=37.749882 , zoom = 12) %>% 
+  addCircleMarkers(
+    data = Diabetes,
+    popup = paste0("State : ", Diabetes$STATE,
+                   "<br/>", 
+                   "Death Rate : ",     
+                   Diabetes$RATE, 
+                   "<br/>",
+                   "Deaths :",
+                   Diabetes$DEATHS
+                   )
+    
+    )})
+  
+  
+  
+  output$plot5 <- renderPlot({ggplot(Yearly, aes(x=Yearly$YEAR, y=Yearly$DEATHS)) +
+  geom_line() + 
+  xlab("")
+  })
+  
+}
+  
+
+
+shinyApp(UI,server) 
+
+
+
+```
+
+
+
